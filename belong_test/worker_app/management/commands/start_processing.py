@@ -1,26 +1,75 @@
 from django.core.management.base import BaseCommand
+from optparse import make_option
 from belong_test.settings import MY_REDIS_QUEUE
 import time
 import ast
+import requests
+from rest_framework import status
+import json
 
-def compute(val_list):
-    return sum(val_list)
+pending_job_url='/custom_queue/pending_job/'
+post_job_result_url='/custom_queue/job_result/'
 
 class Command(BaseCommand):
-    def handle(self, *args, **options):
+    def add_arguments(self, parser):
+
+        parser.add_argument('--job_server',  # "http://127.0.0.1:8000/custom_queue/pending_job/"
+                            action = 'store',
+                            dest = 'job_server',
+                            default = 'http://127.0.0.1:8000',
+                            help = 'This variable is used to query client for jobs')
+        parser.add_argument('--workers',
+                            dest = 'workers',
+                            type = int,
+                            default = 1,
+                            help = 'This variable is used to create number of workers')
+
+    def fetch_pending_job(self):
+        ret={}
+        try:
+            ret=json.loads(requests.get(self.job_server+pending_job_url, timeout = 10).text)
+        except requests.Timeout:
+            pass
+        except Exception as exc:
+            pass
+        return ret
+
+    def post_job_result(self, job_id, result):
+        count=0
+        while count<3:  # retry count incase of failure
+            try:
+                data={'id':job_id, 'result':result}
+                ret=requests.post(self.job_server+post_job_result_url, data = data)
+                if ret.status_code==status.HTTP_202_ACCEPTED:
+                    break
+            except:
+                pass
+            count+=1
+
+    def process_to_call(self):
         while True:
-            lr = MY_REDIS_QUEUE.get_lr_key()
-            la = MY_REDIS_QUEUE.get_la_key()
-            new_item = None
-            if lr < la :
-                key = lr
-                new_item = MY_REDIS_QUEUE.pop()
-                if new_item:
-                    vals = ast.literal_eval(new_item['values'])
-                    r = compute(vals)
-                    MY_REDIS_QUEUE.update(key, r)
-            
-            if not lr < la or not new_item:
+
+            new_item=self.fetch_pending_job()
+            if new_item:
+                job_id=new_item['id']
+                vals=ast.literal_eval(new_item['item']['values'])
+                r=sum(vals)
+                self.post_job_result(job_id, r)
+
+            if not new_item:
                 time.sleep(1)
-            
-            
+
+    def handle(self, *args, **options):
+        if options['job_server'] is not None:
+            self.job_server=options['job_server']
+
+        workers=int(options['workers'])
+        from multiprocessing import Process
+        jobs = []
+        for i in xrange(1):
+            p = Process(target=self.process_to_call)
+            jobs.append(p)
+            p.start()
+
+
+

@@ -5,9 +5,6 @@ from belong_test.settings import MY_REDIS_QUEUE
 
 import json
 
-def index(request):
-    return HttpResponse("Hello, world. You're at the client index.")
-
 @csrf_exempt
 def submit_data(request):
     data=request.POST
@@ -25,7 +22,6 @@ def fetch_job_result(request):
     data =request.GET
     job_id = data.get('id')
     item = MY_REDIS_QUEUE.get(job_id)
-    print item
     if item['result']:
         return HttpResponse(json.dumps(item), content_type = 'application/json',
                         status = status.HTTP_200_OK)

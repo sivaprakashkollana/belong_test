@@ -32,8 +32,9 @@ class SimpleQueueFromRedis(object):
 
     def pop(self):
         lr_key=self.get_lr_key()
-        ret_item=self.get(lr_key+1)
-        return ret_item
+        if self.redis_object.exists(lr_key+1):
+            ret_item=self.get(lr_key+1)
+            return {'id':lr_key+1, 'item':ret_item}
 
     def get(self, key):
         return self.redis_object.hgetall(key)
