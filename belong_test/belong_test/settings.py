@@ -37,6 +37,8 @@ INSTALLED_APPS=[
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'worker_app',
+    'django_extensions', # remove-me
 ]
 
 MIDDLEWARE=[
@@ -122,12 +124,6 @@ STATIC_URL='/static/'
 import redis
 REDIS_HOST='localhost'
 REDIS_PORT=6379
-MY_REDIS=redis.Redis(host = REDIS_HOST, port = REDIS_PORT)
-LAST_READ_REDIS_KEY='last_read'
-LAST_READ_DEFAULT=0
-LATEST_ADDED_REDIS_KEY='latest_added'
-LATEST_ADDED_DEFAULT=0
-if not MY_REDIS.exists(LAST_READ_REDIS_KEY):
-    MY_REDIS.set(LAST_READ_REDIS_KEY, LAST_READ_DEFAULT)
-if not MY_REDIS.exists(LATEST_ADDED_REDIS_KEY):
-    MY_REDIS.set(LATEST_ADDED_REDIS_KEY, LATEST_ADDED_DEFAULT)
+redis_object=redis.Redis(host = REDIS_HOST, port = REDIS_PORT)
+from belong_test.utils import SimpleQueueFromRedis
+MY_REDIS_QUEUE = SimpleQueueFromRedis(redis_object=redis_object)
