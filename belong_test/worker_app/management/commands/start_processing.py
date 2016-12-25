@@ -1,8 +1,5 @@
 from django.core.management.base import BaseCommand
-from optparse import make_option
-from belong_test.settings import MY_REDIS_QUEUE
 import time
-import ast
 import requests
 from rest_framework import status
 import json
@@ -21,7 +18,7 @@ class Command(BaseCommand):
         parser.add_argument('--workers',
                             dest = 'workers',
                             type = int,
-                            default = 1,
+                            default = 2,
                             help = 'This variable is used to create number of workers')
 
     def fetch_pending_job(self):
@@ -48,11 +45,10 @@ class Command(BaseCommand):
 
     def process_to_call(self):
         while True:
-
             new_item=self.fetch_pending_job()
             if new_item:
                 job_id=new_item['id']
-                vals=ast.literal_eval(new_item['item']['values'])
+                vals=new_item['item']['values']
                 r=sum(vals)
                 self.post_job_result(job_id, r)
 
@@ -62,11 +58,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options['job_server'] is not None:
             self.job_server=options['job_server']
-
+        
         workers=int(options['workers'])
         from multiprocessing import Process
         jobs = []
-        for i in xrange(1):
+        for i in xrange(workers):
             p = Process(target=self.process_to_call)
             jobs.append(p)
             p.start()

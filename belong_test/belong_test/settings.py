@@ -27,7 +27,6 @@ DEBUG=True
 
 ALLOWED_HOSTS=[]
 
-
 # Application definition
 
 INSTALLED_APPS=[
@@ -37,7 +36,10 @@ INSTALLED_APPS=[
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'worker_app',
+    'client',
+    'custom_queue',
     'django_extensions', # remove-me
 ]
 
@@ -125,5 +127,7 @@ import redis
 REDIS_HOST='localhost'
 REDIS_PORT=6379
 redis_object=redis.Redis(host = REDIS_HOST, port = REDIS_PORT)
-from belong_test.utils import SimpleQueueFromRedis
+from custom_queue.utils import SimpleQueueFromRedis
 MY_REDIS_QUEUE = SimpleQueueFromRedis(redis_object=redis_object)
+PROCESSED='1'
+NOT_PROCESSED='0'
