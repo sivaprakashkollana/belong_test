@@ -1,9 +1,9 @@
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
 from belong_test.settings import MY_REDIS_QUEUE
-import json
-from rest_framework import status
 from client.models import InputJobs
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+import json
 # Create your views here.
 
 @csrf_exempt

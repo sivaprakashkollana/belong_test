@@ -1,10 +1,8 @@
+from client.models import InputJobs
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
-from belong_test.settings import MY_REDIS_QUEUE
-
 import json
-from client.models import InputJobs
 
 
 @csrf_exempt
@@ -22,10 +20,16 @@ def submit_data(request):
 
 @csrf_exempt
 def fetch_job_result(request):
-    data =request.GET
+    data =request.POST
     job_id = data.get('id')
-    item = MY_REDIS_QUEUE.get(job_id)
-    if item['result']:
+    print data
+    try:
+        obj = InputJobs.objects.get(id=job_id)
+    except InputJobs.DoesNotExist:
+        obj=None
+    
+    if obj:
+        item = {'job_id':job_id,'result':obj.result}
         return HttpResponse(json.dumps(item), content_type = 'application/json',
                         status = status.HTTP_200_OK)
     else:

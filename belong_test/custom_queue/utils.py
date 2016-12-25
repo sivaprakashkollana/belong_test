@@ -35,8 +35,10 @@ class SimpleQueueFromRedis(object):
 
     def pop(self):
         self.periodic_refresh()
+        item = None
         with self._check_lock:
-            item=self.un_processed_items.pop(0)
+            if self.un_processed_items:
+                item=self.un_processed_items.pop(0)
 #           item = self.redis_object.lpop(self.redis_key) # not sure, I can use this functionality, it implies queue func
         if item:
             obj=InputJobs.objects.get(id = item)

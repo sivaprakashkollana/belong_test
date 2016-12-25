@@ -18,7 +18,7 @@ class Command(BaseCommand):
         parser.add_argument('--workers',
                             dest = 'workers',
                             type = int,
-                            default = 2,
+                            default = 1,
                             help = 'This variable is used to create number of workers')
 
     def fetch_pending_job(self):
