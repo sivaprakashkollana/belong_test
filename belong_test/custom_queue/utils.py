@@ -2,8 +2,8 @@ import time
 import threading
 from redis.exceptions import WatchError
 
-PERIODIC_REFRESH_CUTOFF=12000  # seconds
-BATCH_SIZE=50
+PERIODIC_REFRESH_CUTOFF=120  # seconds
+BATCH_SIZE=100
 
 
 class SimpleRedisWrapper(object):
