@@ -29,6 +29,6 @@ def update_job_result(request):
                         status = status.HTTP_202_ACCEPTED)
     else:
         content={'job_id':job_id, 'message':"Result Couldn't be accepted"}
-    return HttpResponse(json.dumps(content), content_type = 'application/json',
-                        status = status.HTTP_404_NOT_FOUND)
+        return HttpResponse(json.dumps(content), content_type = 'application/json',
+                            status = status.HTTP_404_NOT_FOUND)
     

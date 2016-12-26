@@ -26,7 +26,7 @@ class InputJobs(models.Model):
     
     @classmethod
     def update_result(cls,job_id,val):
-        from belong_test.settings import PROCESSED
+        from belong_test.dictionary import PROCESSED
         obj = cls.objects.get(id=job_id)
         obj.status = PROCESSED
         obj.result = val

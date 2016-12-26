@@ -1,27 +1,62 @@
 import time
 import threading
-from client.models import InputJobs
+from redis.exceptions import WatchError
+from belong_test.dictionary import PROCESSED
 
-PROCESSED = 1
-PERIODIC_REFRESH_CUTOFF=120 # seconds
+PERIODIC_REFRESH_CUTOFF=12000  # seconds
 BATCH_SIZE=50
 
-class SimpleQueueFromRedis(object):
+
+class SimpleRedisWrapper(object):
+    job_id_source='job_counter'
     def __init__(self, redis_object):
         self.redis_object=redis_object
-        self.un_processed_items=[]
+        self._check_lock=threading.Lock()
+
+    def compute_job_id(self):
+        key=SimpleRedisWrapper.job_id_source
+
+        with self._check_lock:
+            v=None
+            while v is None:
+                try:
+                    p=self.redis_object.pipeline()
+                    p.watch(key)
+                    p.multi()
+                    p.incr(key)
+                    p.get(key)
+                    v=p.execute()
+                except WatchError:
+                    pass
+            if v:
+                return v[0]
+
+    def create_jdata(self, v1, v2):
+        content={'v1':v1, 'v2':v2, 'result':''}
+        return content
+
+    def add_job(self, v1, v2):
+        job_id=self.compute_job_id()
+        self.redis_object.hmset(job_id, self.create_jdata(v1, v2))
+        return job_id
+
+    def get_job(self, job_id):
+        return self.redis_object.hgetall(job_id)
+
+class SimpleQueueFromRedis(object):
+    job_queue_key='job_queue'
+    def __init__(self, redis_object):
+        self.redis_object=redis_object
         self.last_refresh=time.time()
-        self.redis_key='jobs'
-        self.__init_data()
+#         self.__init_data()
         self._check_lock=threading.Lock()
 
     def __init_data(self):
-        self.redis_object.delete(self.redis_key)
         self.refresh_unprocessed()
 
     def periodic_refresh(self):
         delta=time.time()-self.last_refresh
-        if not self.un_processed_items or delta>PERIODIC_REFRESH_CUTOFF:
+        if not self.get_job_queue_size() or delta>PERIODIC_REFRESH_CUTOFF:
             self.refresh_unprocessed()
             self.last_refresh=time.time()
 
@@ -29,33 +64,39 @@ class SimpleQueueFromRedis(object):
         self.under_process_items.remove(job_id)
 
     def refresh_unprocessed(self, limit = BATCH_SIZE):  # TODO: Refactor me
-        objs=list(InputJobs.objects.exclude(status = PROCESSED).values_list('id', flat = True)[:BATCH_SIZE])
-        [self.put(job_id) for job_id in objs]
-        self.un_processed_items=objs
+        all_job_keys=self.redis_object.keys('[1-9]*')
+        self.redis_object.delete(SimpleQueueFromRedis.job_queue_key)
 
-    def pop(self):
+        for key in all_job_keys:  # TODO: optimize key check, donot check all keys
+            if self.get_job_queue_size()>BATCH_SIZE:
+                break
+            
+            data=self.get(key)
+            if not data['result']:
+                self.put(key)
+
+    def get_job_queue_size(self):
+        return self.redis_object.llen(SimpleQueueFromRedis.job_queue_key)
+
+    def pop_job(self):
         self.periodic_refresh()
-        item = None
         with self._check_lock:
-            if self.un_processed_items:
-                item=self.un_processed_items.pop(0)
-#           item = self.redis_object.lpop(self.redis_key) # not sure, I can use this functionality, it implies queue func
+            if self.get_job_queue_size():
+                item=self.redis_object.lpop(SimpleQueueFromRedis.job_queue_key)
         if item:
-            obj=InputJobs.objects.get(id = item)
-            item={'values':[obj.value1, obj.value2]}
-            return {'id':obj.id, 'item':item}
+            return {'id':item, 'data':self.get(item)}
 
     def get(self, key):
         return self.redis_object.hgetall(key)
 
     def set(self, key, val_dict):
-        self.redis_object.hmset(key, val_dict)
+        self.redis_object.hset(key, val_dict)
 
     def delete_item(self, key):
         self.redis_object.delete(key)
 
     def put(self, job_id):
-        self.redis_object.rpush(self.redis_key, job_id)
+        self.redis_object.rpush(SimpleQueueFromRedis.job_queue_key, job_id)
 
 
 '''
