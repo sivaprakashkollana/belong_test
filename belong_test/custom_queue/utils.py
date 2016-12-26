@@ -1,7 +1,6 @@
 import time
 import threading
 from redis.exceptions import WatchError
-from belong_test.dictionary import PROCESSED
 
 PERIODIC_REFRESH_CUTOFF=12000  # seconds
 BATCH_SIZE=50
@@ -139,7 +138,8 @@ class SimpleQueueFromRedis(object):
 
 
 '''
-Using only Redis for storing, data and to generate unique keys, db was not involved, dropped this, cos it didn't function with multiconsumer
+Using only Redis for storing, data and to generate unique keys, db was not involved, dropped this,
+ cos it didn't function with multiconsumer
 LAST_READ_REDIS_KEY='last_read'
 LAST_READ_DEFAULT=0
 LATEST_ADDED_REDIS_KEY='latest_added'
