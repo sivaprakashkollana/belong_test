@@ -128,5 +128,5 @@ REDIS_HOST='localhost'
 REDIS_PORT=6379
 redis_object=redis.Redis(host = REDIS_HOST, port = REDIS_PORT)
 from custom_queue.utils import SimpleQueueFromRedis, SimpleRedisWrapper
-MY_REDIS_QUEUE = SimpleQueueFromRedis(redis_object=redis_object)
 MY_REDIS_WRAPPER = SimpleRedisWrapper(redis_object=redis_object)
+MY_REDIS_QUEUE = SimpleQueueFromRedis(redis_wrapper=MY_REDIS_WRAPPER)
